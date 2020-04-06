@@ -45,6 +45,9 @@ class Breakfast_HTML_Fields_Merge_Tags{
 			if( ! empty( rgpost( 'input_' . $input_id ) ) ) {
 				$field_content = str_replace( $match[0], rgpost( 'input_' . $input_id ), $field_content );
 				continue;
+			} else {
+				// No value? Don't output anything. Needed for optional fields.
+				$field_content = str_replace( $match[0], '', $field_content );
 			}
 
 			/**
