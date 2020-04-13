@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name: Gravity Forms Merge Tags in HTML Fields
- * Plugin URI: https://coreysalzano.com
+ * Plugin URI: https://github.com/csalzano/gravityforms-html-fields-merge-tags/
  * Description: An add-on for Gravity Forms to enable merge tags in HTML fields
- * Version: 0.1.0
+ * Version: 1.0.0
  * Author: Corey Salzano
  * Author URI: https://coreysalzano.com
  * Text Domain: gravityforms-html-merge-tags
@@ -13,9 +13,10 @@
  */
 
 
-class Breakfast_HTML_Fields_Merge_Tags{
-
-	function hooks() {
+class Breakfast_HTML_Fields_Merge_Tags
+{
+	function hooks()
+	{
 		/**
 		 * Allow HTML field contents to use merge tags to insert field values
 		 * from previous pages. This makes it easy to create a final page with a
@@ -25,67 +26,97 @@ class Breakfast_HTML_Fields_Merge_Tags{
 		add_filter( 'gform_field_content', array( $this, 'enable_merge_tags_in_html_fields' ), 10, 5 );
 	}
 
-	function enable_merge_tags_in_html_fields( $field_content, $field, $value, $entry_id, $form_id ) {
-
-		if( 'html' != $field->type || false === strpos( $field_content, '{' ) ) {
+	/**
+	 * @param string $field_content The field content to be filtered.
+	 * @param GF_Field $field The field that this input tag applies to.
+	 * @param string $value The default/initial value that the field should be pre-populated with.
+	 * @param integer $entry_id When executed from the entry detail screen, $lead_id will be populated with the Entry ID. Otherwise, it will be 0.
+	 * @param integer $form_id The current Form ID.
+	 */
+	function enable_merge_tags_in_html_fields( $field_content, $field, $value, $entry_id, $form_id )
+	{
+		//If Gravity Forms is not running, do nothing
+		if( ! class_exists( 'GFAPI' ) )
+		{
 			return $field_content;
 		}
 
-		//Borrowing this regex from GF_Common
-		// Replacing field variables: {FIELD_LABEL:FIELD_ID} {My Field:2}.
-		preg_match_all( '/{[^{]*?:(\d+(\.\d+)?)(:(.*?))?}/mi', $field_content, $matches, PREG_SET_ORDER );
-		if ( ! is_array( $matches ) ) {
+		if( empty( $field_content ) || 'html' != $field->type )
+		{
 			return $field_content;
 		}
 
-		foreach ( $matches as $match ) {
-			$input_id = $match[1];
+		$form = GFAPI::get_form( $form_id );
 
-			//Easy, fields with one input element
-			if( ! empty( rgpost( 'input_' . $input_id ) ) ) {
-				$field_content = str_replace( $match[0], rgpost( 'input_' . $input_id ), $field_content );
-				continue;
-			}
+		/**
+		 * $lead holds the values entered on previous pages for a current form
+		 * entry or after a Save & Continue link was clicked
+		 */
+		$lead = $this->get_partial_entry( $form );
+		return GFCommon::replace_variables( $field_content, $form, $lead );
+	}
 
-			/**
-			 * Perhaps the field has multiple inputs, like the name field or
-			 * a list of strings
-			 */
-			$tag_field = RGFormsModel::get_field( $form_id, $input_id );
-			if( ! is_array( $tag_field->inputs ) ) {
-				//nope
-				continue;
-			}
-			$merge_tag_values = array();
-			foreach( $tag_field->inputs as $key => $input ) {
-				if( isset( $input['isHidden'] ) && $input['isHidden'] ) {
-					continue;
-				}
-
-				//this ID is one of the ones you want
-				$input_id = str_replace( '.', '_', $input['id'] );
-				if( empty( rgpost( 'input_' . $input_id ) ) ) {
-					continue;
-				}
-				$merge_tag_values[] = rgpost( 'input_' . $input_id );
-			}
-
-			/**
-			 * The glue character in this implode() should be a space for
-			 * the Name type field, but probably a line break or comma and
-			 * space for the checkbox and list fields.
-			 */
-			$glue_characters = ' ';
-			switch( $tag_field->type ) {
-				case 'checkbox':
-				case 'list':
-					$glue_characters = ', ';
-					break;
-			}
-
-			$field_content = str_replace( $match[0], implode( $glue_characters, $merge_tag_values ), $field_content );
+	/**
+	 * Retrieves partial entry info in two ways:
+	 * If the "Save and Continue" setting is enabled in the form's settings or
+	 * previous pages have been submitted and those values are stored in $_POST.
+	 *
+	 * @return Array The partial_entry member of the array returned by GFFormsModel::get_draft_submission_values( $resume_token )
+	 */
+	function get_partial_entry( $form )
+	{
+		//Has the user clicked a Save & Continue link?
+		$resume_token = rgpost( 'gform_resume_token' );
+		if( empty( $resume_token ) )
+		{
+			$resume_token = rgget( 'gf_token' );
 		}
-		return $field_content;
+		$resume_token = sanitize_key( $resume_token );
+
+		if( ! empty( $resume_token ) )
+		{
+			//Yes, the user clicked a Save & Continue link, Gravity Forms has the values
+			$incomplete_submission_info = GFFormsModel::get_draft_submission_values( $resume_token );
+			if ( ! empty( $incomplete_submission_info['form_id'] ) && $incomplete_submission_info['form_id'] == $form['id'] )
+			{
+				$submission_details_json = $incomplete_submission_info['submission'];
+				$submission_details      = json_decode( $submission_details_json, true );
+				return $submission_details['partial_entry'];
+			}
+		}
+
+		/**
+		 * The user did not click a Save & Continue link. Perhaps the user is
+		 * filling out the form right now, and the values are in $_POST.
+		 * Use values in $_POST to replicate a piece of the array that is
+		 * returned by GFFormsModel::get_draft_submission_values()
+		 */
+		$partial_entry = array(
+			'id'           => null,
+			'post_id'      => null,
+			'date_created' => null,
+			'date_updated' => null,
+			'form_id'      => $form['id'],
+			'ip'           => $_SERVER['REMOTE_ADDR'],
+			'source_url'   => (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]",
+			'user_agent'   => $_SERVER['HTTP_USER_AGENT'],
+			'created_by'   => null,
+			'currency'     => GF_Common::get_currency(),
+		);
+		/**
+		 * Populate field values into $partial_entry with keys that are not the
+		 * same as the keys in $_POST. These values are what will trick Gravity
+		 * Forms into making field merge tags evaluate.
+		 * @see https://docs.gravityforms.com/field-merge-tags/
+		 */
+		foreach( $_POST as $key => $value )
+		{
+			if( 'input_' == substr( $key, 0, 6 ) )
+			{
+				$partial_entry[str_replace( '_', '.', substr( $key, 6 ) )] = $value;
+			}
+		}
+		return (object) $partial_entry;
 	}
 }
 $breakfast_html_fields_merge_tags = new Breakfast_HTML_Fields_Merge_Tags();
