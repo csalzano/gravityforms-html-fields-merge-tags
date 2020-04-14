@@ -116,7 +116,7 @@ class Breakfast_HTML_Fields_Merge_Tags
 				$partial_entry[str_replace( '_', '.', substr( $key, 6 ) )] = $value;
 			}
 		}
-		return (object) $partial_entry;
+		return $partial_entry;
 	}
 }
 $breakfast_html_fields_merge_tags = new Breakfast_HTML_Fields_Merge_Tags();
