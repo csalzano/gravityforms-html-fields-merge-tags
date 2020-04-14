@@ -101,7 +101,7 @@ class Breakfast_HTML_Fields_Merge_Tags
 			'source_url'   => (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]",
 			'user_agent'   => $_SERVER['HTTP_USER_AGENT'],
 			'created_by'   => null,
-			'currency'     => GF_Common::get_currency(),
+			'currency'     => GFCommon::get_currency(),
 		);
 		/**
 		 * Populate field values into $partial_entry with keys that are not the
