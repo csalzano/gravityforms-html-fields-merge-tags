@@ -111,10 +111,17 @@ class Breakfast_HTML_Fields_Merge_Tags
 		 */
 		foreach( $_POST as $key => $value )
 		{
-			if( 'input_' == substr( $key, 0, 6 ) )
+			if( 'input_' != substr( $key, 0, 6 ) )
 			{
-				$partial_entry[str_replace( '_', '.', substr( $key, 6 ) )] = $value;
+				continue;
 			}
+
+			//$key = input_4_1
+
+			$field_id = str_replace( '_', '.', substr( $key, 6 ) );
+			//$field_id = 4.1
+
+			$partial_entry[$field_id] = $value;
 		}
 		return $partial_entry;
 	}
