@@ -3,7 +3,7 @@
  * Plugin Name: Gravity Forms Merge Tags in HTML Fields
  * Plugin URI: https://github.com/csalzano/gravityforms-html-fields-merge-tags/
  * Description: An add-on for Gravity Forms to enable merge tags in HTML fields
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: Corey Salzano
  * Author URI: https://coreysalzano.com
  * Text Domain: gravityforms-html-merge-tags
