@@ -53,7 +53,11 @@ class Breakfast_HTML_Fields_Merge_Tags
 		 * entry or after a Save & Continue link was clicked
 		 */
 		$lead = $this->get_partial_entry( $form );
-		return GFCommon::replace_variables( $field_content, $form, $lead );
+		/**
+		 * Send false as the last argument, $nl2br, false. Do not convert line
+		 * breaks to <br /> elements.
+		 */
+		return GFCommon::replace_variables( $field_content, $form, $lead, false, true, false );
 	}
 
 	/**
