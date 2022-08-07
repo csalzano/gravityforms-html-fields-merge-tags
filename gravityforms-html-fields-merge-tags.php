@@ -3,9 +3,9 @@
  * Plugin Name: Gravity Forms Merge Tags in HTML Fields
  * Plugin URI: https://github.com/csalzano/gravityforms-html-fields-merge-tags/
  * Description: An add-on for Gravity Forms to enable merge tags in HTML fields
- * Version: 1.0.2
+ * Version: 1.0.3
  * Author: Corey Salzano
- * Author URI: https://coreysalzano.com
+ * Author URI: https://breakfastco.xyz/power-boost-for-gravity-forms/
  * Text Domain: gravityforms-html-merge-tags
  * Domain Path: /languages
  * License: GPLv2 or later
@@ -113,19 +113,16 @@ class Breakfast_HTML_Fields_Merge_Tags
 		 * Forms into making field merge tags evaluate.
 		 * @see https://docs.gravityforms.com/field-merge-tags/
 		 */
-		foreach( $_POST as $key => $value )
+		foreach( $form['fields'] as $field )
 		{
-			if( 'input_' != substr( $key, 0, 6 ) )
-			{
-				continue;
+			$inputs = $field->get_entry_inputs();
+			if ( is_array( $inputs ) ) {
+				foreach ( $inputs as $input ) {
+					$partial_entry[str_replace( '_', '.', $input['id'])] = rgpost( 'input_' . $input['id'] );
+				}
+			} else {
+				$partial_entry[str_replace( '_', '.', $field->id )] = rgpost( 'input_' . $field->id );
 			}
-
-			//$key = input_4_1
-
-			$field_id = str_replace( '_', '.', substr( $key, 6 ) );
-			//$field_id = 4.1
-
-			$partial_entry[$field_id] = $value;
 		}
 		return $partial_entry;
 	}
